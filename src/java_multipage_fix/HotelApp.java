@@ -1,74 +1,67 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
-public class HotelApp extends JFrame implements Bookable {
+public class HotelApp extends JFrame implements bookable {
     private CardLayout cards;
     private JPanel mainPanel;
-    private User currentUser;
+    private user currentUser;
 
-    private static List<Room> rooms = new ArrayList<>();
-    private static List<Booking> bookings = new ArrayList<>();
+    // Simulasi "database kamar": <No, Status>
+    private static HashMap<String, String> roomStatus = new HashMap<>();
 
-    private JTable roomTable;
-    private JTable bookingTable;
+    // Menyimpan semua kamar yang dibooking oleh (sesi) user saat ini
+    private Set<String> bookedRooms = new HashSet<>();
+
+    private JTable roomTable; // Untuk update tabel
 
     static {
-        rooms.add(new Room("101", "Single", 150000, true));
-        rooms.add(new Room("102", "Double", 250000, true));
-        rooms.add(new Room("103", "Suite", 500000, false));
+        // Inisialisasi status kamar dalam Bahasa Indonesia konsisten
+        roomStatus.put("101", "Tersedia");
+        roomStatus.put("102", "Tersedia");
+        roomStatus.put("103", "Tersedia");
     }
 
     public HotelApp() {
-        setTitle("Hotel Management System - PBO");
-        setSize(700, 500);
+        setTitle("Hotel Management System - Object Oriented Programming");
+        setSize(600, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         cards = new CardLayout();
         mainPanel = new JPanel(cards);
 
-        mainPanel.add(createWelcomePanel(), "WELCOME");
-        mainPanel.add(createLoginPanel(), "LOGIN");
         mainPanel.add(createHomePanel(), "HOME");
-        mainPanel.add(createDashboardPanel(), "DASHBOARD");
-        mainPanel.add(createRoomManagementPanel(), "ROOM_MGMT");
-        mainPanel.add(createBookingManagementPanel(), "BOOKING_MGMT");
+        mainPanel.add(createLoginPanel(), "LOGIN");
+        mainPanel.add(createDashboardPanel(), "DASH");
+        mainPanel.add(createRoomListPanel(), "ROOMS");
 
         add(mainPanel);
-        cards.show(mainPanel, "WELCOME");
+        cards.show(mainPanel, "HOME");
         setVisible(true);
     }
 
-    private JPanel createWelcomePanel() {
+    // PAGE 1: HOME
+    private JPanel createHomePanel() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(new Color(30, 60, 120));
+        p.setBackground(new Color(70, 130, 180));
 
-        JLabel title = new JLabel("HOTEL JAVA", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 36));
+        JLabel title = new JLabel("Hotel Management System", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 28));
         title.setForeground(Color.WHITE);
         p.add(title, BorderLayout.CENTER);
 
-        JLabel desc = new JLabel("<html><center>Sistem Manajemen Hotel<br>Modern • Aman • Efisien</center></html>", SwingConstants.CENTER);
-        desc.setFont(new Font("Arial", Font.PLAIN, 18));
-        desc.setForeground(Color.LIGHT_GRAY);
-        p.add(desc, BorderLayout.SOUTH);
-
-        JButton loginBtn = new JButton("Masuk ke Sistem");
+        JButton loginBtn = new JButton("Login");
         loginBtn.setFont(new Font("Arial", Font.BOLD, 16));
-        loginBtn.setBackground(new Color(0, 120, 215));
-        loginBtn.setForeground(Color.WHITE);
         loginBtn.addActionListener(e -> cards.show(mainPanel, "LOGIN"));
-
-        JPanel btnPanel = new JPanel();
-        btnPanel.setBackground(new Color(30, 60, 120));
-        btnPanel.add(loginBtn);
-        p.add(btnPanel, BorderLayout.NORTH);
+        p.add(loginBtn, BorderLayout.SOUTH);
 
         return p;
     }
 
+    // PAGE 2: LOGIN
     private JPanel createLoginPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -77,198 +70,212 @@ public class HotelApp extends JFrame implements Bookable {
         JTextField id = new JTextField(15);
         JPasswordField pass = new JPasswordField(15);
         JButton login = new JButton("Login");
+        JButton back = new JButton("Kembali");
 
         gbc.gridx = 1; gbc.gridy = 0; p.add(new JLabel("ID:"), gbc);
-        gbc.gridy = 1; p.add(new JLabel("Pass:"), gbc);
+        gbc.gridy = 1; p.add(new JLabel("Password:"), gbc);
         gbc.gridx = 2; gbc.gridy = 0; p.add(id, gbc);
         gbc.gridy = 1; p.add(pass, gbc);
         gbc.gridy = 2; p.add(login, gbc);
+        gbc.gridx = 0; p.add(back, gbc);
 
         login.addActionListener(e -> {
-            if (id.getText().equals("admin") && new String(pass.getPassword()).equals("admin")) {
-                currentUser = new Admin("Manager", "admin");
-                JOptionPane.showMessageDialog(this, "Login Sukses!");
-                cards.show(mainPanel, "HOME");
+            if (id.getText().equals("admin") && new String(pass.getPassword()).equals("123")) {
+                currentUser = new admin("Boss", "admin");
+                bookedRooms.clear(); // reset booking session saat login
+                JOptionPane.showMessageDialog(this, "Login berhasil!");
+                cards.show(mainPanel, "DASH");
             } else {
-                JOptionPane.showMessageDialog(this, "Gagal!", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Login gagal!", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
+        back.addActionListener(e -> cards.show(mainPanel, "HOME"));
         return p;
     }
 
-    private JPanel createHomePanel() {
-        JPanel p = new JPanel(new GridLayout(4, 1, 10, 10));
-        p.setBorder(BorderFactory.createEmptyBorder(50, 100, 50, 100));
-
-        p.add(createButton("Dashboard", e -> cards.show(mainPanel, "DASHBOARD")));
-        p.add(createButton("Room Management", e -> {
-            refreshRoomTable();
-            cards.show(mainPanel, "ROOM_MGMT");
-        }));
-        p.add(createButton("Booking Management", e -> {
-            refreshBookingTable();
-            cards.show(mainPanel, "BOOKING_MGMT");
-        }));
-        p.add(createButton("Logout", e -> {
-            currentUser = null;
-            cards.show(mainPanel, "WELCOME");
-        }));
-
-        return p;
-    }
-
+    // PAGE 3: DASHBOARD
     private JPanel createDashboardPanel() {
-        JPanel p = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(15,15,15,15);
-        gbc.anchor = GridBagConstraints.WEST;
+        JPanel p = new JPanel(new GridLayout(6, 1, 10, 10));
+        p.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
 
-        int available = (int) rooms.stream().filter(Room::isAvailable).count();
-        int activeBookings = (int) bookings.stream().filter(Booking::isActive).count();
+        // 1. Lihat Daftar Kamar
+        p.add(new JButton("1. Lihat Daftar Kamar") {{
+            addActionListener(e -> {
+                updateRoomTable();
+                cards.show(mainPanel, "ROOMS");
+            });
+        }});
 
-        JLabel stat1 = new JLabel("Jumlah Kamar Tersedia: " + available);
-        JLabel stat2 = new JLabel("Jumlah Booking Aktif: " + activeBookings);
+        // 2. Booking Kamar
+        p.add(new JButton("2. Booking Kamar") {{
+            addActionListener(e -> showBookingDialog());
+        }});
 
-        gbc.gridx = 0; gbc.gridy = 0; p.add(stat1, gbc);
-        gbc.gridy = 1; p.add(stat2, gbc);
-        gbc.gridy = 2; p.add(createButton("Kembali", e -> cards.show(mainPanel, "HOME")), gbc);
+        // 3. Cancel Booking
+        p.add(new JButton("3. Batalkan Booking") {{
+            addActionListener(e -> showCancelDialog());
+        }});
+
+        // 4. Kelola Kamar (Admin)
+        p.add(new JButton("4. Kelola Kamar (Admin)") {{
+            addActionListener(e -> {
+                if (currentUser != null && currentUser instanceof admin) {
+                    ((admin) currentUser).manageRooms();
+                } else {
+                    JOptionPane.showMessageDialog(null, "Fitur hanya untuk admin.", "Akses Ditolak", JOptionPane.WARNING_MESSAGE);
+                }
+            });
+        }});
+
+        // 5. Logout
+        p.add(new JButton("5. Logout") {{
+            addActionListener(e -> {
+                currentUser = null;
+                bookedRooms.clear();
+                cards.show(mainPanel, "HOME");
+            });
+        }});
 
         return p;
     }
 
-    private JPanel createRoomManagementPanel() {
+    // PAGE 4: LIHAT KAMAR
+    private JPanel createRoomListPanel() {
         JPanel p = new JPanel(new BorderLayout());
-        p.add(new JLabel("ROOM MANAGEMENT", SwingConstants.CENTER), BorderLayout.NORTH);
+        p.setBackground(Color.WHITE);
 
-        String[] cols = {"No", "Tipe", "Harga", "Tersedia"};
-        roomTable = new JTable(new Object[0][0], cols);
-        p.add(new JScrollPane(roomTable), BorderLayout.CENTER);
+        JLabel title = new JLabel("DAFTAR KAMAR TERSEDIA", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        p.add(title, BorderLayout.NORTH);
 
-        JPanel btns = new JPanel();
-        btns.add(createButton("Tambah", e -> addRoom()));
-        btns.add(createButton("Edit", e -> editRoom()));
-        btns.add(createButton("Hapus", e -> deleteRoom()));
-        btns.add(createButton("Kembali", e -> cards.show(mainPanel, "HOME")));
-        p.add(btns, BorderLayout.SOUTH);
+        String[] cols = {"No", "Tipe", "Harga", "Status"};
+        Object[][] data = new Object[0][0];
+        JTable table = new JTable(data, cols);
+        table.setEnabled(false);
+        p.add(new JScrollPane(table), BorderLayout.CENTER);
 
+        JButton back = new JButton("Kembali ke Dashboard");
+        back.addActionListener(e -> cards.show(mainPanel, "DASH"));
+        p.add(back, BorderLayout.SOUTH);
+
+        this.roomTable = table;
         return p;
     }
 
-    private void refreshRoomTable() {
-        Object[][] data = rooms.stream().map(r -> new Object[]{
-            r.getNo(), r.getType(), r.getPrice(), r.isAvailable() ? "Ya" : "Tidak"
-        }).toArray(Object[][]::new);
-        roomTable.setModel(new javax.swing.table.DefaultTableModel(data, new String[]{"No", "Tipe", "Harga", "Tersedia"}));
+    // Update tabel kamar
+    private void updateRoomTable() {
+        String[][] data = {
+            {"101", "Single", "Rp 150.000", roomStatus.get("101")},
+            {"102", "Double", "Rp 250.000", roomStatus.get("102")},
+            {"103", "Suite",  "Rp 500.000", roomStatus.get("103")}
+        };
+        String[] cols = {"No", "Tipe", "Harga", "Status"};
+        roomTable.setModel(new javax.swing.table.DefaultTableModel(data, cols));
     }
 
-    private void addRoom() {
-        JTextField no = new JTextField(), type = new JTextField(), price = new JTextField();
-        JPanel panel = new JPanel(new GridLayout(0, 2));
-        panel.add(new JLabel("No:")); panel.add(no);
-        panel.add(new JLabel("Tipe:")); panel.add(type);
-        panel.add(new JLabel("Harga:")); panel.add(price);
+    // DIALOG BOOKING (mendukung multi-booking)
+    private void showBookingDialog() {
+        String[] options = {"101 - Single (Rp 150.000)", "102 - Double (Rp 250.000)", "103 - Suite (Rp 500.000)"};
+        String choice = (String) JOptionPane.showInputDialog(
+            this, "Pilih kamar untuk booking:", "Booking Kamar",
+            JOptionPane.QUESTION_MESSAGE, null, options, options[0]
+        );
 
-        if (JOptionPane.showConfirmDialog(this, panel, "Tambah Kamar", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            try {
-                rooms.add(new Room(no.getText(), type.getText(), Double.parseDouble(price.getText()), true));
-                refreshRoomTable();
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Harga harus angka!");
+        if (choice != null) {
+            String roomNo = choice.substring(0, 3);
+            String status = roomStatus.get(roomNo);
+
+            if (status == null) {
+                JOptionPane.showMessageDialog(this, "Nomor kamar tidak valid.", "Gagal", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (status.equals("Tersedia")) {
+                roomStatus.put(roomNo, "Dipesan");
+                bookedRooms.add(roomNo);
+                JOptionPane.showMessageDialog(this, "Booking kamar " + roomNo + " berhasil!");
+                updateRoomTable();
+            } else {
+                JOptionPane.showMessageDialog(this, "Kamar " + roomNo + " sudah dipesan!", "Gagal", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    private void editRoom() {
-        int row = roomTable.getSelectedRow();
-        if (row == -1) { JOptionPane.showMessageDialog(this, "Pilih kamar!"); return; }
-        Room r = rooms.get(row);
-        JTextField type = new JTextField(r.getType()), price = new JTextField(String.valueOf(r.getPrice()));
-        JPanel panel = new JPanel(new GridLayout(0, 2));
-        panel.add(new JLabel("Tipe:")); panel.add(type);
-        panel.add(new JLabel("Harga:")); panel.add(price);
+    // DIALOG CANCEL (mendukung cancel satu atau semua kamar yang dibooking)
+    private void showCancelDialog() {
+        if (bookedRooms.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Anda belum booking kamar apapun.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
 
-        if (JOptionPane.showConfirmDialog(this, panel, "Edit Kamar", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            try {
-                r.setType(type.getText());
-                r.setPrice(Double.parseDouble(price.getText()));
-                refreshRoomTable();
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Harga harus angka!");
+        // Siapkan opsi pembatalan: daftar kamar yang dibooking + opsi "Batalkan Semua"
+        String[] bookedArray = bookedRooms.toArray(new String[0]);
+        String[] options = new String[bookedArray.length + 1];
+        for (int i = 0; i < bookedArray.length; i++) {
+            options[i] = bookedArray[i] + " - " + getRoomTypeLabel(bookedArray[i]);
+        }
+        options[bookedArray.length] = "Batalkan Semua";
+
+        String choice = (String) JOptionPane.showInputDialog(
+            this,
+            "Pilih booking yang ingin dibatalkan:",
+            "Batalkan Booking",
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+
+        if (choice == null) return; // user batal memilih
+
+        if (choice.equals("Batalkan Semua")) {
+            // Batalkan semua
+            for (String rn : bookedRooms) {
+                roomStatus.put(rn, "Tersedia");
             }
+            bookedRooms.clear();
+            JOptionPane.showMessageDialog(this, "Semua booking dibatalkan.");
+            updateRoomTable();
+            return;
+        }
+
+        // Jika memilih salah satu, ambil nomor kamar (format "101 - ...")
+        String roomNo = choice.substring(0, 3);
+        if (bookedRooms.contains(roomNo)) {
+            roomStatus.put(roomNo, "Tersedia");
+            bookedRooms.remove(roomNo);
+            JOptionPane.showMessageDialog(this, "Booking kamar " + roomNo + " dibatalkan.");
+            updateRoomTable();
+        } else {
+            // Kondisi ini seharusnya tidak terjadi karena opsi berasal dari bookedRooms,
+            // tetapi sediakan pesan aman jika terjadi inkonsistensi.
+            JOptionPane.showMessageDialog(this, "Gagal membatalkan: data booking tidak konsisten.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void deleteRoom() {
-        int row = roomTable.getSelectedRow();
-        if (row == -1) { JOptionPane.showMessageDialog(this, "Pilih kamar!"); return; }
-        if (JOptionPane.showConfirmDialog(this, "Hapus?", "Konfirmasi", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            rooms.remove(row);
-            refreshRoomTable();
+    // Helper: berikan label tipe kamar untuk tampilan cancel (opsional)
+    private String getRoomTypeLabel(String roomNo) {
+        switch (roomNo) {
+            case "101": return "Single (Rp 150.000)";
+            case "102": return "Double (Rp 250.000)";
+            case "103": return "Suite (Rp 500.000)";
+            default: return "Unknown";
         }
     }
 
-    private JPanel createBookingManagementPanel() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.add(new JLabel("BOOKING MANAGEMENT", SwingConstants.CENTER), BorderLayout.NORTH);
-
-        String[] cols = {"No Kamar", "Tamu", "Status"};
-        bookingTable = new JTable(new Object[0][0], cols);
-        p.add(new JScrollPane(bookingTable), BorderLayout.CENTER);
-
-        JPanel btns = new JPanel();
-        btns.add(createButton("Buat Booking", e -> bookRoom()));
-        btns.add(createButton("Batalkan", e -> cancelBooking()));
-        btns.add(createButton("Kembali", e -> cards.show(mainPanel, "HOME")));
-        p.add(btns, BorderLayout.SOUTH);
-
-        return p;
-    }
-
-    private void refreshBookingTable() {
-        Object[][] data = bookings.stream().map(b -> new Object[]{
-            b.getRoomNo(), b.getGuestName(), b.isActive() ? "Aktif" : "Dibatalkan"
-        }).toArray(Object[][]::new);
-        bookingTable.setModel(new javax.swing.table.DefaultTableModel(data, new String[]{"No Kamar", "Tamu", "Status"}));
-    }
-
+    // Implementasi interface bookable
     @Override
     public void bookRoom() {
-        String roomNo = JOptionPane.showInputDialog("No Kamar:");
-        String guest = JOptionPane.showInputDialog("Nama Tamu:");
-        if (roomNo != null && guest != null && !roomNo.isEmpty() && !guest.isEmpty()) {
-            Room r = rooms.stream().filter(room -> room.getNo().equals(roomNo) && room.isAvailable()).findFirst().orElse(null);
-            if (r != null) {
-                r.setAvailable(false);
-                bookings.add(new Booking(roomNo, guest, true));
-                refreshBookingTable();
-                JOptionPane.showMessageDialog(this, "Booking berhasil!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Kamar tidak tersedia!");
-            }
-        }
+        showBookingDialog();
     }
 
     @Override
     public void cancelBooking() {
-        int row = bookingTable.getSelectedRow();
-        if (row == -1) { JOptionPane.showMessageDialog(this, "Pilih booking!"); return; }
-        Booking b = bookings.get(row);
-        if (JOptionPane.showConfirmDialog(this, "Batalkan?", "Konfirmasi", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            b.setActive(false);
-            Room r = rooms.stream().filter(room -> room.getNo().equals(b.getRoomNo())).findFirst().orElse(null);
-            if (r != null) r.setAvailable(true);
-            refreshBookingTable();
-        }
+        showCancelDialog();
     }
 
-    private JButton createButton(String text, java.awt.event.ActionListener al) {
-        JButton b = new JButton(text);
-        b.setFont(new Font("Arial", Font.BOLD, 14));
-        b.addActionListener(al);
-        return b;
-    }
-
+    // Main
     public static void main(String[] args) {
         SwingUtilities.invokeLater(HotelApp::new);
     }
