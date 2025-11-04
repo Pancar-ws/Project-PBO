@@ -64,13 +64,13 @@ public class HotelApp extends JFrame implements bookable {
 
     static {
         // Inisialisasi kamar
-        roomStatus.put("101", "Available");
-        roomStatus.put("102", "Available");
-        roomStatus.put("103", "Available");
+        roomStatus.put("101", "Tersedia");
+        roomStatus.put("102", "Tersedia");
+        roomStatus.put("103", "Tersedia");
     }
 
     public HotelApp() {
-        setTitle("Hotel Management System - Object Oriented Programming");
+        setTitle("Hotel Sederhana - Tugas PBO (Booking & Cancel)");
         setSize(600, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -92,12 +92,12 @@ public class HotelApp extends JFrame implements bookable {
     private JPanel createHomePanel() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(new Color(70, 130, 180));
-        JLabel title = new JLabel("Hotel Management System", SwingConstants.CENTER);
+        JLabel title = new JLabel("HOTEL JAVA", SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 28));
         title.setForeground(Color.WHITE);
         p.add(title, BorderLayout.CENTER);
 
-        JButton loginBtn = new JButton("Login");
+        JButton loginBtn = new JButton("Masuk ke Login");
         loginBtn.setFont(new Font("Arial", Font.BOLD, 16));
         loginBtn.addActionListener(e -> cards.show(mainPanel, "LOGIN"));
         p.add(loginBtn, BorderLayout.SOUTH);
@@ -113,7 +113,7 @@ public class HotelApp extends JFrame implements bookable {
         JTextField id = new JTextField(15);
         JPasswordField pass = new JPasswordField(15);
         JButton login = new JButton("Login");
-        JButton back = new JButton("Back");
+        JButton back = new JButton("Kembali");
 
         gbc.gridx = 1; gbc.gridy = 0; p.add(new JLabel("ID:"), gbc);
         gbc.gridy = 1; p.add(new JLabel("Pass:"), gbc);
@@ -125,10 +125,10 @@ public class HotelApp extends JFrame implements bookable {
         login.addActionListener(e -> {
             if (id.getText().equals("admin") && new String(pass.getPassword()).equals("123")) {
                 currentUser = new admin("Boss", "admin");
-                JOptionPane.showMessageDialog(this, "Success Login!");
+                JOptionPane.showMessageDialog(this, "Login Sukses!");
                 cards.show(mainPanel, "DASH");
             } else {
-                JOptionPane.showMessageDialog(this, "Login Failed!", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Gagal!", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         back.addActionListener(e -> cards.show(mainPanel, "HOME"));
